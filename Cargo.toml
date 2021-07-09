@@ -9,7 +9,7 @@ homepage = "https://github.com/Zakarum/bitsetium"
 repository = "https://github.com/Zakarum/bitsetium"
 readme = "README.md"
 description = "One stop shop for all bitset needs"
-categories = ["data-structures", "no_std"]
+categories = ["data-structures", "no-std"]
 keywords = ["bitset"]
 
 [features]
