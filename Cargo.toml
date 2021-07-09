@@ -1,0 +1,17 @@
+[package]
+name = "bitsetium"
+version = "0.0.0"
+edition = "2018"
+authors = ["Zakarum <zakarumych@ya.ru>"]
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/bitsetium"
+homepage = "https://github.com/Zakarum/bitsetium"
+repository = "https://github.com/Zakarum/bitsetium"
+readme = "README.md"
+description = "One stop shop for all bitset needs"
+categories = ["data-structures", "no_std"]
+keywords = ["bitset"]
+
+[features]
+default = ["alloc"]
+alloc = []
