@@ -6,6 +6,12 @@
 [![MIT/Apache](https://img.shields.io/badge/license-MIT%2FApache-blue.svg?style=for-the-badge)](COPYING)
 ![loc](https://img.shields.io/tokei/lines/github/zakarumych/bitsetium?style=for-the-badge)
 
+This crate provides most useful operations on bitsets.
+Provides lazy wrappers for bitset operations.
+Supports large sparse bitsets with fast search for bits using hierarchical layers.
+
+This is WIP crate. Use at own risk. Issues are welcomed.
+
 ## License
 
 Licensed under either of

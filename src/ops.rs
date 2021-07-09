@@ -120,20 +120,15 @@ pub trait BitSearch {
     /// Searches for first bit set starting with `lower_bound`.
     /// Returns index of first bit set.
     ///
-    /// # Panics
-    ///
-    /// Calling with `idx > MAX_INDEX` should panic.
-    ///
-    /// Implementations are encouraged to use assertions.
-    ///
     /// # Example
     ///
     /// ```
-    /// fn validate<S: BitSearch>(set: &S, lower_bound: usize) {
+    /// # use {core::ops::Range, bitsetium::*};
+    /// fn validate<S: BitSearch + BitSetLimit + BitTest>(set: &S, lower_bound: usize) {
     ///   match set.find_first_set(lower_bound) {
-    ///     None => assert!((lower_bound..=S::MAX_INDEX).all(|idx| !set.test(idx)))
+    ///     None => assert!((lower_bound..=S::MAX_SET_INDEX).all(|idx| !set.test(idx))),
     ///     Some(idx) => {
-    ///       assert!(idx <= S::MAX_INDEX);
+    ///       assert!(idx <= S::MAX_SET_INDEX);
     ///       assert!((lower_bound..idx).all(|idx| !set.test(idx)));
     ///       assert!(set.test(idx));
     ///     }
@@ -145,18 +140,13 @@ pub trait BitSearch {
     /// Searches for bit set specified range.
     /// Returns index of bit set.
     ///
-    /// # Panics
-    ///
-    /// Calling with `range.end.max(range.start) > MAX_INDEX` should panic.
-    ///
-    /// Implementations are encouraged to use assertions.
-    ///
     /// # Example
     ///
     /// ```
-    /// fn validate<S: BitSearch>(set: &S, range: Range<usize>) {
+    /// # use {core::ops::Range, bitsetium::*};
+    /// fn validate<S: BitSearch + BitTest>(set: &S, mut range: Range<usize>) {
     ///   match set.find_set_in_range(range.clone()) {
-    ///     None => assert!(range.all(|idx| !set.test(idx)))
+    ///     None => assert!(range.all(|idx| !set.test(idx))),
     ///     Some(idx) => {
     ///       assert!(idx < range.end);
     ///       assert!((range.start..idx).all(|idx| !set.test(idx)));
