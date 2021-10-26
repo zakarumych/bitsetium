@@ -3,7 +3,7 @@ use crate::{
     union::Union,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Layered<T, B, const N: usize> {
     top: T,
     bottom: [B; N],
@@ -28,7 +28,7 @@ where
     B: BitTest + BitSetLimit,
 {
     fn test(&self, idx: usize) -> bool {
-        if idx > crate::min(T::MAX_SET_INDEX, N - 1) {
+        if idx >= Self::MAX_SET_INDEX {
             false
         } else {
             let t = idx / (B::MAX_SET_INDEX + 1);
@@ -45,7 +45,7 @@ where
     B: BitSearch + BitSetLimit,
 {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
-        if lower_bound > T::MAX_SET_INDEX {
+        if lower_bound >= Self::MAX_SET_INDEX {
             None
         } else {
             let t = lower_bound / (B::MAX_SET_INDEX + 1);
@@ -76,7 +76,8 @@ where
     T: BitSetLimit,
     B: BitSetLimit,
 {
-    const MAX_SET_INDEX: usize = crate::max(T::MAX_SET_INDEX + 1, N) * (B::MAX_SET_INDEX + 1);
+    const MAX_SET_INDEX: usize =
+        crate::max(T::MAX_SET_INDEX, N - 1) * (B::MAX_SET_INDEX + 1) + B::MAX_SET_INDEX;
 }
 
 impl<T, B, const N: usize> BitSet for Layered<T, B, N>
