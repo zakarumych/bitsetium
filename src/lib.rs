@@ -1,76 +1,118 @@
 //!
-//! `bitsetium` crate contains traits for common bitset operations, and number of implementations.
+//! Bit sets manipulations emporium.
 //!
 //!
+//!
+//!
+#![no_std]
+#![deny(missing_docs)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-mod complement;
-mod difference;
+mod bloom;
+mod comp;
+mod diff;
 mod indirect;
-mod intersection;
+mod intersect;
 mod layered;
 mod ops;
 mod option;
 mod primitive;
+mod sym_diff;
 mod union;
 
 pub use self::{
-    complement::Complement, difference::Difference, intersection::Intersection, layered::Layered,
-    ops::*, union::Union,
+    bloom::Bloom, comp::Comp, diff::Diff, intersect::Intersect, layered::Layered, ops::*,
+    sym_diff::SymDiff, union::Union,
 };
 
-pub type Bits1 = bool;
-pub type Bits8 = u8;
-pub type Bits16 = u16;
-pub type Bits32 = u32;
-pub type Bits64 = u64;
-pub type Bits128 = u128;
+/// BitSet type with capacity of 1.
+pub type BitSet1 = bool;
 
-pub type Bits256 = Layered<u32, u8, 32>;
-pub type Bits512 = Layered<u64, u8, 64>;
-pub type Bits1024 = Layered<u64, u16, 64>;
-pub type Bits2048 = Layered<u64, u32, 64>;
-pub type Bits4096 = Layered<u64, u64, 64>;
-pub type Bits8192 = Layered<u64, u128, 64>;
-pub type Bits16384 = Layered<u128, u128, 128>;
+/// BitSet type with capacity of 8.
+pub type BitSet8 = u8;
 
+/// BitSet type with capacity of 16.
+pub type BitSet16 = u16;
+
+/// BitSet type with capacity of 32.
+pub type BitSet32 = u32;
+
+/// BitSet type with capacity of 64.
+pub type BitSet64 = u64;
+
+/// BitSet type with capacity of 128.
+pub type BitSet128 = u128;
+
+/// BitSet type with capacity of 256.
+pub type BitSet256 = Layered<u32, u8, 32>;
+
+/// BitSet type with capacity of 512.
+pub type BitSet512 = Layered<u64, u8, 64>;
+
+/// BitSet type with capacity of 1024.
+pub type BitSet1024 = Layered<u64, u16, 64>;
+
+/// BitSet type with capacity of 2048.
+pub type BitSet2048 = Layered<u64, u32, 64>;
+
+/// BitSet type with capacity of 4096.
+pub type BitSet4096 = Layered<u64, u64, 64>;
+
+/// BitSet type with capacity of 8192.
+pub type BitSet8192 = Layered<u64, u128, 64>;
+
+/// BitSet type with capacity of 16384.
+pub type BitSet16384 = Layered<u128, u128, 128>;
+
+/// BitSet type with capacity of 32768.
 #[cfg(feature = "alloc")]
-pub type Bits32768 = Layered<u64, Option<alloc::boxed::Box<Bits512>>, 64>;
+pub type BitSet32768 = Layered<u64, Option<alloc::boxed::Box<BitSet512>>, 64>;
 
+/// BitSet type with capacity of 65536.
 #[cfg(feature = "alloc")]
-pub type Bits65536 = Layered<u64, Option<alloc::boxed::Box<Bits1024>>, 64>;
+pub type BitSet65536 = Layered<u64, Option<alloc::boxed::Box<BitSet1024>>, 64>;
 
+/// BitSet type with capacity of 131072.
 #[cfg(feature = "alloc")]
-pub type Bits131072 = Layered<u64, Option<alloc::boxed::Box<Bits2048>>, 64>;
+pub type BitSet131072 = Layered<u64, Option<alloc::boxed::Box<BitSet2048>>, 64>;
 
+/// BitSet type with capacity of 262144.
 #[cfg(feature = "alloc")]
-pub type Bits262144 = Layered<u64, Option<alloc::boxed::Box<Bits4096>>, 64>;
+pub type BitSet262144 = Layered<u64, Option<alloc::boxed::Box<BitSet4096>>, 64>;
 
+/// BitSet type with capacity of 524288.
 #[cfg(feature = "alloc")]
-pub type Bits524288 = Layered<u64, Option<alloc::boxed::Box<Bits8192>>, 64>;
+pub type BitSet524288 = Layered<u64, Option<alloc::boxed::Box<BitSet8192>>, 64>;
 
+/// BitSet type with capacity of 1048576.
 #[cfg(feature = "alloc")]
-pub type Bits1048576 = Layered<u64, Option<alloc::boxed::Box<Bits16384>>, 64>;
+pub type BitSet1048576 = Layered<u64, Option<alloc::boxed::Box<BitSet16384>>, 64>;
 
+/// BitSet type with capacity of 2097152.
 #[cfg(feature = "alloc")]
-pub type Bits2097152 = Layered<u64, Option<alloc::boxed::Box<Bits32768>>, 64>;
+pub type BitSet2097152 = Layered<u64, Option<alloc::boxed::Box<BitSet32768>>, 64>;
 
+/// BitSet type with capacity of 4194304.
 #[cfg(feature = "alloc")]
-pub type Bits4194304 = Layered<u64, Option<alloc::boxed::Box<Bits65536>>, 64>;
+pub type BitSet4194304 = Layered<u64, Option<alloc::boxed::Box<BitSet65536>>, 64>;
 
+/// BitSet type with capacity of 8388608.
 #[cfg(feature = "alloc")]
-pub type Bits8388608 = Layered<u64, Option<alloc::boxed::Box<Bits131072>>, 64>;
+pub type BitSet8388608 = Layered<u64, Option<alloc::boxed::Box<BitSet131072>>, 64>;
 
+/// BitSet type with capacity of 16777216.
 #[cfg(feature = "alloc")]
-pub type Bits16777216 = Layered<u64, Option<alloc::boxed::Box<Bits262144>>, 64>;
+pub type BitSet16777216 = Layered<u64, Option<alloc::boxed::Box<BitSet262144>>, 64>;
 
+/// BitSet type with capacity of 33554432.
 #[cfg(feature = "alloc")]
-pub type Bits33554432 = Layered<u64, Option<alloc::boxed::Box<Bits524288>>, 64>;
+pub type BitSet33554432 = Layered<u64, Option<alloc::boxed::Box<BitSet524288>>, 64>;
 
+/// BitSet type with capacity of 67108864.
 #[cfg(feature = "alloc")]
-pub type Bits67108864 = Layered<u64, Option<alloc::boxed::Box<Bits1048576>>, 64>;
+pub type BitSet67108864 = Layered<u64, Option<alloc::boxed::Box<BitSet1048576>>, 64>;
 
 const fn max(a: usize, b: usize) -> usize {
     if a > b {
@@ -123,7 +165,7 @@ fn map2_arrays<T, U, F, O, const N: usize>(
 where
     F: FnMut(T, U) -> O,
 {
-    use core::{array::IntoIter, mem::MaybeUninit};
+    use core::mem::MaybeUninit;
 
     let mut result = unsafe {
         // # Safe
@@ -131,11 +173,7 @@ where
         MaybeUninit::<[MaybeUninit<O>; N]>::uninit().assume_init()
     };
 
-    for ((slot, left_elem), right_elem) in result
-        .iter_mut()
-        .zip(IntoIter::new(left_array))
-        .zip(IntoIter::new(right_array))
-    {
+    for ((slot, left_elem), right_elem) in result.iter_mut().zip(left_array).zip(right_array) {
         unsafe {
             // # Safe. Writing to unit but valid and properly aligned memory.
             // Leaks all previously written elements on panic. Still safe.

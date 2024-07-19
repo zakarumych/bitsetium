@@ -1,4 +1,4 @@
-use crate::{complement::Complement, ops::*};
+use crate::{comp::Comp, ops::*};
 
 macro_rules! impl_for_primitive {
     ($ty:ty : $size:literal) => {
@@ -9,7 +9,10 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitTest for $ty {
+        impl Bits for $ty {
+            const MAX_SET_INDEX: usize = $size - 1;
+            const MAX_UNSET_INDEX: usize = usize::MAX;
+
             #[inline]
             fn test(&self, idx: usize) -> bool {
                 if idx < $size {
@@ -34,20 +37,12 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitSetLimit for $ty {
-            const MAX_SET_INDEX: usize = $size - 1;
-        }
-
         impl BitSet for $ty {
             #[inline]
             unsafe fn set_unchecked(&mut self, idx: usize) {
                 debug_assert!(idx < $size);
                 *self |= (1 as $ty << idx);
             }
-        }
-
-        impl BitUnsetLimit for $ty {
-            const MAX_UNSET_INDEX: usize = usize::MAX;
         }
 
         impl BitUnset for $ty {
@@ -59,7 +54,7 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitSearch for $ty {
+        impl BitFind for $ty {
             fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
                 if lower_bound > Self::MAX_SET_INDEX {
                     return None;
@@ -73,11 +68,11 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitComplement for $ty {
-            type Output = Complement<$ty>;
+        impl BitComp for $ty {
+            type Output = $ty;
 
-            fn complement(self) -> Complement<Self> {
-                Complement(self)
+            fn comp(self) -> Self {
+                !self
             }
         }
 
@@ -89,43 +84,43 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitUnion<Complement<$ty>> for $ty {
-            type Output = Complement<Self>;
+        impl BitUnion<Comp<$ty>> for $ty {
+            type Output = Comp<Self>;
 
-            fn union(self, rhs: Complement<Self>) -> Complement<Self> {
-                Complement(rhs.0 & (!self))
+            fn union(self, rhs: Comp<Self>) -> Comp<Self> {
+                Comp(rhs.0 & (!self))
             }
         }
 
-        impl BitIntersection for $ty {
+        impl BitIntersect for $ty {
             type Output = Self;
 
-            fn intersection(self, rhs: Self) -> Self {
+            fn intersect(self, rhs: Self) -> Self {
                 self & rhs
             }
         }
 
-        impl BitIntersection<Complement<$ty>> for $ty {
+        impl BitIntersect<Comp<$ty>> for $ty {
             type Output = Self;
 
-            fn intersection(self, rhs: Complement<Self>) -> Self {
+            fn intersect(self, rhs: Comp<Self>) -> Self {
                 self & (!rhs.0)
             }
         }
 
-        impl BitDifference for $ty {
+        impl BitDiff for $ty {
             type Output = Self;
 
-            fn difference(self, rhs: Self) -> Self {
+            fn diff(self, rhs: Self) -> Self {
                 self & (!rhs)
             }
         }
 
-        impl BitDifference<Complement<$ty>> for $ty {
+        impl BitSymDiff for $ty {
             type Output = Self;
 
-            fn difference(self, rhs: Complement<Self>) -> Self {
-                self & rhs.0
+            fn sym_diff(self, rhs: Self) -> Self {
+                self ^ rhs
             }
         }
 
@@ -135,8 +130,8 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitSubset<Complement<$ty>> for $ty {
-            fn is_subset_of(&self, rhs: &Complement<Self>) -> bool {
+        impl BitSubset<Comp<$ty>> for $ty {
+            fn is_subset_of(&self, rhs: &Comp<Self>) -> bool {
                 *self & rhs.0 == 0
             }
         }
@@ -147,8 +142,8 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl BitDisjoint<Complement<$ty>> for $ty {
-            fn is_disjoint(&self, rhs: &Complement<Self>) -> bool {
+        impl BitDisjoint<Comp<$ty>> for $ty {
+            fn is_disjoint(&self, rhs: &Comp<Self>) -> bool {
                 *self & !rhs.0 == 0
             }
         }
@@ -160,7 +155,10 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitTest for [$ty; N] {
+        impl<const N: usize> Bits for [$ty; N] {
+            const MAX_SET_INDEX: usize = ($size * N) - 1;
+            const MAX_UNSET_INDEX: usize = usize::MAX;
+
             #[inline]
             fn test(&self, idx: usize) -> bool {
                 if idx < $size * N {
@@ -187,10 +185,6 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitSetLimit for [$ty; N] {
-            const MAX_SET_INDEX: usize = ($size * N) - 1;
-        }
-
         impl<const N: usize> BitSet for [$ty; N] {
             #[inline]
             unsafe fn set_unchecked(&mut self, idx: usize) {
@@ -199,10 +193,6 @@ macro_rules! impl_for_primitive {
                 let j = idx % $size;
                 self[i] |= (1 as $ty << j);
             }
-        }
-
-        impl<const N: usize> BitUnsetLimit for [$ty; N] {
-            const MAX_UNSET_INDEX: usize = usize::MAX;
         }
 
         impl<const N: usize> BitUnset for [$ty; N] {
@@ -217,7 +207,7 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitSearch for [$ty; N] {
+        impl<const N: usize> BitFind for [$ty; N] {
             fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
                 if lower_bound > Self::MAX_SET_INDEX {
                     return None;
@@ -243,11 +233,14 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitComplement for [$ty; N] {
-            type Output = Complement<Self>;
+        impl<const N: usize> BitComp for [$ty; N] {
+            type Output = Self;
 
-            fn complement(self) -> Complement<Self> {
-                Complement(self)
+            fn comp(mut self) -> Self {
+                for e in &mut self {
+                    *e = !*e;
+                }
+                self
             }
         }
 
@@ -259,43 +252,35 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitUnion<Complement<[$ty; N]>> for [$ty; N] {
-            type Output = Complement<Self>;
+        impl<const N: usize> BitUnion<Comp<[$ty; N]>> for [$ty; N] {
+            type Output = Comp<Self>;
 
-            fn union(self, rhs: Complement<Self>) -> Complement<Self> {
-                Complement(crate::map2_arrays(self, rhs.0, |l, r| r & !l))
+            fn union(self, rhs: Comp<Self>) -> Comp<Self> {
+                Comp(crate::map2_arrays(self, rhs.0, |l, r| r & !l))
             }
         }
 
-        impl<const N: usize> BitIntersection for [$ty; N] {
+        impl<const N: usize> BitIntersect for [$ty; N] {
             type Output = Self;
 
-            fn intersection(self, rhs: Self) -> Self {
+            fn intersect(self, rhs: Self) -> Self {
                 crate::map2_arrays(self, rhs, |l, r| l & r)
             }
         }
 
-        impl<const N: usize> BitIntersection<Complement<[$ty; N]>> for [$ty; N] {
+        impl<const N: usize> BitIntersect<Comp<[$ty; N]>> for [$ty; N] {
             type Output = Self;
 
-            fn intersection(self, rhs: Complement<Self>) -> Self {
+            fn intersect(self, rhs: Comp<Self>) -> Self {
                 crate::map2_arrays(self, rhs.0, |l, r| l & !r)
             }
         }
 
-        impl<const N: usize> BitDifference for [$ty; N] {
+        impl<const N: usize> BitDiff for [$ty; N] {
             type Output = Self;
 
-            fn difference(self, rhs: Self) -> Self {
+            fn diff(self, rhs: Self) -> Self {
                 crate::map2_arrays(self, rhs, |l, r| l & !r)
-            }
-        }
-
-        impl<const N: usize> BitDifference<Complement<[$ty; N]>> for [$ty; N] {
-            type Output = Self;
-
-            fn difference(self, rhs: Complement<Self>) -> Self {
-                crate::map2_arrays(self, rhs.0, |l, r| l & r)
             }
         }
 
@@ -305,8 +290,8 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitSubset<Complement<[$ty; N]>> for [$ty; N] {
-            fn is_subset_of(&self, rhs: &Complement<Self>) -> bool {
+        impl<const N: usize> BitSubset<Comp<[$ty; N]>> for [$ty; N] {
+            fn is_subset_of(&self, rhs: &Comp<Self>) -> bool {
                 self.iter().zip(&rhs.0).all(|(lhs, rhs)| *lhs & *rhs == 0)
             }
         }
@@ -317,8 +302,8 @@ macro_rules! impl_for_primitive {
             }
         }
 
-        impl<const N: usize> BitDisjoint<Complement<[$ty; N]>> for [$ty; N] {
-            fn is_disjoint(&self, rhs: &Complement<Self>) -> bool {
+        impl<const N: usize> BitDisjoint<Comp<[$ty; N]>> for [$ty; N] {
+            fn is_disjoint(&self, rhs: &Comp<Self>) -> bool {
                 self.iter().zip(&rhs.0).all(|(lhs, rhs)| *lhs & !*rhs == 0)
             }
         }
@@ -338,7 +323,10 @@ impl BitEmpty for bool {
     }
 }
 
-impl BitTest for bool {
+impl Bits for bool {
+    const MAX_SET_INDEX: usize = 0;
+    const MAX_UNSET_INDEX: usize = usize::MAX;
+
     #[inline]
     fn test(&self, idx: usize) -> bool {
         if idx == 0 {
@@ -363,20 +351,12 @@ impl BitTestNone for bool {
     }
 }
 
-impl BitSetLimit for bool {
-    const MAX_SET_INDEX: usize = 0;
-}
-
 impl BitSet for bool {
     #[inline]
     unsafe fn set_unchecked(&mut self, idx: usize) {
         debug_assert_eq!(idx, 0);
         *self = true;
     }
-}
-
-impl BitUnsetLimit for bool {
-    const MAX_UNSET_INDEX: usize = usize::MAX;
 }
 
 impl BitUnset for bool {
@@ -388,7 +368,7 @@ impl BitUnset for bool {
     }
 }
 
-impl BitSearch for bool {
+impl BitFind for bool {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
         if lower_bound > 0 {
             return None;
@@ -402,11 +382,11 @@ impl BitSearch for bool {
     }
 }
 
-impl BitComplement for bool {
-    type Output = Complement<bool>;
+impl BitComp for bool {
+    type Output = Comp<bool>;
 
-    fn complement(self) -> Complement<Self> {
-        Complement(self)
+    fn comp(self) -> Comp<Self> {
+        Comp(self)
     }
 }
 
@@ -418,42 +398,42 @@ impl BitUnion for bool {
     }
 }
 
-impl BitUnion<Complement<bool>> for bool {
-    type Output = Complement<Self>;
+impl BitUnion<Comp<bool>> for bool {
+    type Output = Comp<Self>;
 
-    fn union(self, rhs: Complement<Self>) -> Complement<Self> {
-        Complement(rhs.0 && (!self))
+    fn union(self, rhs: Comp<Self>) -> Comp<Self> {
+        Comp(rhs.0 && (!self))
     }
 }
 
-impl BitIntersection for bool {
+impl BitIntersect for bool {
     type Output = Self;
 
-    fn intersection(self, rhs: Self) -> Self {
+    fn intersect(self, rhs: Self) -> Self {
         self && rhs
     }
 }
 
-impl BitIntersection<Complement<bool>> for bool {
+impl BitIntersect<Comp<bool>> for bool {
     type Output = Self;
 
-    fn intersection(self, rhs: Complement<Self>) -> Self {
+    fn intersect(self, rhs: Comp<Self>) -> Self {
         self && (!rhs.0)
     }
 }
 
-impl BitDifference for bool {
+impl BitDiff for bool {
     type Output = Self;
 
-    fn difference(self, rhs: Self) -> Self {
+    fn diff(self, rhs: Self) -> Self {
         self && (!rhs)
     }
 }
 
-impl BitDifference<Complement<bool>> for bool {
+impl BitDiff<Comp<bool>> for bool {
     type Output = Self;
 
-    fn difference(self, rhs: Complement<Self>) -> Self {
+    fn diff(self, rhs: Comp<Self>) -> Self {
         self && rhs.0
     }
 }
@@ -464,8 +444,8 @@ impl BitSubset for bool {
     }
 }
 
-impl BitSubset<Complement<bool>> for bool {
-    fn is_subset_of(&self, rhs: &Complement<Self>) -> bool {
+impl BitSubset<Comp<bool>> for bool {
+    fn is_subset_of(&self, rhs: &Comp<Self>) -> bool {
         !*self || !rhs.0
     }
 }
@@ -476,8 +456,8 @@ impl BitDisjoint for bool {
     }
 }
 
-impl BitDisjoint<Complement<bool>> for bool {
-    fn is_disjoint(&self, rhs: &Complement<Self>) -> bool {
+impl BitDisjoint<Comp<bool>> for bool {
+    fn is_disjoint(&self, rhs: &Comp<Self>) -> bool {
         !*self || rhs.0
     }
 }

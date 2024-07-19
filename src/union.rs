@@ -1,96 +1,91 @@
 use {
-    crate::{intersection::Intersection, ops::*},
+    crate::ops::*,
     core::fmt::{self, Display},
 };
 
-/// Bit-set wrapper that acts like set complement.
+/// Bit-set wrapper that acts like set comp.
 ///
-/// Effectively inverses all bits in the underlying bit-set.
+/// Effectively inverses all bits in the underlying bitset.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct Union<T, U>(pub T, pub U);
+pub struct Union<A, B>(pub A, pub B);
 
-impl<T, U> Union<T, U> {
+impl<A, B> Union<A, B> {
     /// Swap sets of the union.
-    pub fn swap_sets(self) -> Union<U, T> {
+    pub fn swap_sets(self) -> Union<B, A> {
         Union(self.1, self.0)
     }
 }
 
-impl<T, U> Display for Union<T, U>
+impl<A, B> Display for Union<A, B>
 where
-    T: Display,
-    U: Display,
+    A: Display,
+    B: Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Union({}, {})", self.0, self.1)
     }
 }
 
-impl<T, U> BitEmpty for Union<T, U>
+impl<A, B> Bits for Union<A, B>
 where
-    T: BitEmpty,
-    U: BitEmpty,
+    A: Bits,
+    B: Bits,
 {
-    fn empty() -> Self {
-        Union(T::empty(), U::empty())
-    }
-}
+    const MAX_SET_INDEX: usize = crate::max(A::MAX_SET_INDEX, B::MAX_SET_INDEX);
+    const MAX_UNSET_INDEX: usize = crate::min(A::MAX_UNSET_INDEX, B::MAX_UNSET_INDEX);
 
-impl<T, U> BitFull for Union<T, U>
-where
-    T: BitFull,
-    U: Default,
-{
-    fn full() -> Self {
-        Union(T::full(), U::default())
-    }
-}
-
-impl<T, U> BitTest for Union<T, U>
-where
-    T: BitTest,
-    U: BitTest,
-{
     fn test(&self, idx: usize) -> bool {
         self.0.test(idx) || self.1.test(idx)
     }
 }
 
-impl<T, U> BitTestNone for Union<T, U>
+impl<A, B> BitEmpty for Union<A, B>
 where
-    T: BitTestNone,
-    U: BitTestNone,
+    A: BitEmpty,
+    B: BitEmpty,
+{
+    fn empty() -> Self {
+        Union(A::empty(), B::empty())
+    }
+}
+
+impl<A, B> BitFull for Union<A, B>
+where
+    A: BitFull,
+    B: BitEmpty,
+{
+    fn full() -> Self {
+        Union(A::full(), B::empty())
+    }
+}
+
+impl<A, B> BitTestNone for Union<A, B>
+where
+    A: BitTestNone,
+    B: BitTestNone,
 {
     fn test_none(&self) -> bool {
         self.0.test_none() && self.1.test_none()
     }
 }
 
-impl<T, U> BitTestAll for Union<T, U>
+impl<A, B> BitTestAll for Union<A, B>
 where
-    T: BitTestAll,
-    U: BitTestAll,
+    A: BitTestAll,
+    B: BitTestAll,
 {
     fn test_all(&self) -> bool {
         self.0.test_all() || self.1.test_all()
     }
 }
 
-impl<T, U> BitSetLimit for Union<T, U>
+impl<A, B> BitSet for Union<A, B>
 where
-    T: BitSetLimit,
-    U: BitSetLimit,
-{
-    const MAX_SET_INDEX: usize = crate::max(T::MAX_SET_INDEX, U::MAX_SET_INDEX);
-}
-
-impl<T, U> BitSet for Union<T, U>
-where
-    T: BitSet,
-    U: BitSet,
+    A: BitSet,
+    B: BitSet,
 {
     unsafe fn set_unchecked(&mut self, idx: usize) {
-        if idx <= T::MAX_SET_INDEX {
+        if idx <= A::MAX_SET_INDEX {
             self.0.set_unchecked(idx);
         } else {
             self.1.set_unchecked(idx);
@@ -98,18 +93,10 @@ where
     }
 }
 
-impl<T, U> BitUnsetLimit for Union<T, U>
+impl<A, B> BitUnset for Union<A, B>
 where
-    T: BitUnsetLimit,
-    U: BitUnsetLimit,
-{
-    const MAX_UNSET_INDEX: usize = crate::min(T::MAX_UNSET_INDEX, U::MAX_UNSET_INDEX);
-}
-
-impl<T, U> BitUnset for Union<T, U>
-where
-    T: BitUnset,
-    U: BitUnset,
+    A: BitUnset,
+    B: BitUnset,
 {
     unsafe fn unset_unchecked(&mut self, idx: usize) {
         self.0.unset_unchecked(idx);
@@ -117,10 +104,10 @@ where
     }
 }
 
-impl<T, U> BitSearch for Union<T, U>
+impl<A, B> BitFind for Union<A, B>
 where
-    T: BitSearch,
-    U: BitSearch,
+    A: BitFind,
+    B: BitFind,
 {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
         let t = self.0.find_first_set(lower_bound);
@@ -135,51 +122,80 @@ where
     }
 }
 
-impl<T, U> BitComplement for Union<T, U>
+impl<A, B, C, P, I> BitComp for Union<A, B>
 where
-    T: BitComplement,
-    U: BitComplement,
+    A: BitComp<Output = C>,
+    B: BitComp<Output = P>,
+    C: BitIntersect<P, Output = I>,
+    P: Bits,
+    I: Bits,
 {
-    type Output = Intersection<T::Output, U::Output>;
+    type Output = I;
 
-    fn complement(self) -> Self::Output {
-        Intersection(self.0.complement(), self.1.complement())
+    fn comp(self) -> I {
+        self.0.comp().intersect(self.1.comp())
     }
 }
 
-impl<T, U, Y> BitUnion<Y> for Union<T, U>
+impl<A, B, C, U, N> BitUnion<C> for Union<A, B>
 where
-    T: BitUnion<Y>,
+    A: BitUnion<C, Output = U>,
+    B: Bits,
+    C: Bits,
+    U: BitUnion<B, Output = N>,
+    N: Bits,
 {
-    type Output = Union<T::Output, U>;
+    type Output = N;
 
-    fn union(self, rhs: Y) -> Self::Output {
-        Union(self.0.union(rhs), self.1)
+    fn union(self, rhs: C) -> N {
+        self.0.union(rhs).union(self.1)
     }
 }
 
-impl<T, U, Y> BitIntersection<Y> for Union<T, U>
+impl<A, B, C, I, X, U> BitIntersect<C> for Union<A, B>
 where
-    T: BitIntersection<Y>,
-    U: BitIntersection<Y>,
-    Y: Copy,
+    A: BitIntersect<C, Output = I>,
+    B: BitIntersect<C, Output = X>,
+    C: Bits + Copy,
+    I: BitUnion<X, Output = U>,
+    X: Bits,
+    U: Bits,
 {
-    type Output = Union<T::Output, U::Output>;
+    type Output = U;
 
-    fn intersection(self, rhs: Y) -> Self::Output {
-        Union(self.0.intersection(rhs), self.1.intersection(rhs))
+    fn intersect(self, rhs: C) -> U {
+        self.0.intersect(rhs).union(self.1.intersect(rhs))
     }
 }
 
-impl<T, U, Y> BitDifference<Y> for Union<T, U>
+impl<A, B, C, D, F, U> BitDiff<C> for Union<A, B>
 where
-    T: BitDifference<Y>,
-    U: BitDifference<Y>,
-    Y: Copy,
+    A: BitDiff<C, Output = D>,
+    B: BitDiff<C, Output = F>,
+    C: Bits + Copy,
+    D: BitUnion<F, Output = U>,
+    F: Bits,
+    U: Bits,
 {
-    type Output = Union<T::Output, U::Output>;
+    type Output = U;
 
-    fn difference(self, rhs: Y) -> Self::Output {
-        Union(self.0.difference(rhs), self.1.difference(rhs))
+    fn diff(self, rhs: C) -> U {
+        self.0.diff(rhs).union(self.1.diff(rhs))
+    }
+}
+
+impl<A, B, C, D, F, U> BitSymDiff<C> for Union<A, B>
+where
+    A: BitSymDiff<C, Output = D>,
+    B: BitSymDiff<C, Output = F>,
+    C: Bits + Copy,
+    D: BitUnion<F, Output = U>,
+    F: Bits,
+    U: Bits,
+{
+    type Output = U;
+
+    fn sym_diff(self, rhs: C) -> U {
+        self.0.sym_diff(rhs).union(self.1.sym_diff(rhs))
     }
 }

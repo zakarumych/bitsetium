@@ -1,24 +1,12 @@
 use crate::ops::*;
 
-impl<T> BitEmpty for Option<T> {
-    fn empty() -> Self {
-        None
-    }
-}
-
-impl<T> BitFull for Option<T>
+impl<A> Bits for Option<A>
 where
-    T: BitFull,
+    A: Bits,
 {
-    fn full() -> Self {
-        Some(T::full())
-    }
-}
+    const MAX_SET_INDEX: usize = A::MAX_SET_INDEX;
+    const MAX_UNSET_INDEX: usize = A::MAX_UNSET_INDEX;
 
-impl<T> BitTest for Option<T>
-where
-    T: BitTest,
-{
     fn test(&self, idx: usize) -> bool {
         match self {
             None => false,
@@ -27,9 +15,27 @@ where
     }
 }
 
-impl<T> BitTestNone for Option<T>
+impl<A> BitEmpty for Option<A>
 where
-    T: BitTestNone,
+    A: Bits,
+{
+    fn empty() -> Self {
+        None
+    }
+}
+
+impl<A> BitFull for Option<A>
+where
+    A: BitFull,
+{
+    fn full() -> Self {
+        Some(A::full())
+    }
+}
+
+impl<A> BitTestNone for Option<A>
+where
+    A: BitTestNone,
 {
     fn test_none(&self) -> bool {
         match self {
@@ -39,9 +45,9 @@ where
     }
 }
 
-impl<T> BitTestAll for Option<T>
+impl<A> BitTestAll for Option<A>
 where
-    T: BitTestAll,
+    A: BitTestAll,
 {
     fn test_all(&self) -> bool {
         match self {
@@ -51,32 +57,18 @@ where
     }
 }
 
-impl<T> BitSetLimit for Option<T>
+impl<A> BitSet for Option<A>
 where
-    T: BitSetLimit,
-{
-    const MAX_SET_INDEX: usize = T::MAX_SET_INDEX;
-}
-
-impl<T> BitSet for Option<T>
-where
-    T: BitSet + BitEmpty,
+    A: BitSet + BitEmpty,
 {
     unsafe fn set_unchecked(&mut self, idx: usize) {
-        self.get_or_insert_with(T::empty).set_unchecked(idx)
+        self.get_or_insert_with(A::empty).set_unchecked(idx)
     }
 }
 
-impl<T> BitUnsetLimit for Option<T>
+impl<A> BitUnset for Option<A>
 where
-    T: BitUnsetLimit,
-{
-    const MAX_UNSET_INDEX: usize = T::MAX_UNSET_INDEX;
-}
-
-impl<T> BitUnset for Option<T>
-where
-    T: BitUnset + BitTestNone,
+    A: BitUnset + BitTestNone,
 {
     unsafe fn unset_unchecked(&mut self, idx: usize) {
         if let Some(bits) = self {
@@ -88,9 +80,9 @@ where
     }
 }
 
-impl<T> BitSearch for Option<T>
+impl<A> BitFind for Option<A>
 where
-    T: BitSearch,
+    A: BitFind,
 {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
         match self {
@@ -100,29 +92,29 @@ where
     }
 }
 
-impl<T> BitComplement for Option<T>
+impl<A, C> BitComp for Option<A>
 where
-    T: BitComplement,
-    T::Output: BitFull,
+    A: BitComp<Output = C>,
+    C: BitFull,
 {
-    type Output = Option<T::Output>;
+    type Output = Option<C>;
 
-    fn complement(self) -> Self::Output {
+    fn comp(self) -> Option<C> {
         match self {
-            None => Some(BitFull::full()),
-            Some(bits) => Some(bits.complement()),
+            None => Some(C::full()),
+            Some(bits) => Some(bits.comp()),
         }
     }
 }
 
-impl<T, U> BitUnion<U> for Option<T>
+impl<A, B> BitUnion<B> for Option<A>
 where
-    T: BitUnion<U>,
-    U: Into<T::Output>,
+    A: BitUnion<B>,
+    B: Bits + Into<A::Output>,
 {
-    type Output = T::Output;
+    type Output = A::Output;
 
-    fn union(self, rhs: U) -> T::Output {
+    fn union(self, rhs: B) -> A::Output {
         match self {
             None => rhs.into(),
             Some(lhs) => lhs.union(rhs),
@@ -130,39 +122,60 @@ where
     }
 }
 
-impl<T, U> BitIntersection<U> for Option<T>
+impl<A, B, I> BitIntersect<B> for Option<A>
 where
-    T: BitIntersection<U>,
+    A: BitIntersect<B, Output = I>,
+    B: Bits,
+    I: Bits,
 {
-    type Output = Option<T::Output>;
+    type Output = Option<I>;
 
-    fn intersection(self, rhs: U) -> Option<T::Output> {
+    fn intersect(self, rhs: B) -> Option<I> {
         match self {
             None => None,
-            Some(lhs) => Some(lhs.intersection(rhs)),
+            Some(lhs) => Some(lhs.intersect(rhs)),
         }
     }
 }
 
-impl<T, U> BitDifference<U> for Option<T>
+impl<A, B, D> BitDiff<B> for Option<A>
 where
-    T: BitDifference<U>,
+    A: BitDiff<B, Output = D>,
+    B: Bits,
+    D: Bits,
 {
-    type Output = Option<T::Output>;
+    type Output = Option<D>;
 
-    fn difference(self, rhs: U) -> Option<T::Output> {
+    fn diff(self, rhs: B) -> Option<D> {
         match self {
             None => None,
-            Some(lhs) => Some(lhs.difference(rhs)),
+            Some(lhs) => Some(lhs.diff(rhs)),
         }
     }
 }
 
-impl<T, U> BitSubset<U> for Option<T>
+impl<A, B, D> BitSymDiff<B> for Option<A>
 where
-    T: BitSubset<U>,
+    A: BitSymDiff<B, Output = D>,
+    B: Bits,
+    D: Bits + From<B>,
 {
-    fn is_subset_of(&self, rhs: &U) -> bool {
+    type Output = D;
+
+    fn sym_diff(self, rhs: B) -> D {
+        match self {
+            None => D::from(rhs),
+            Some(lhs) => lhs.sym_diff(rhs),
+        }
+    }
+}
+
+impl<A, B> BitSubset<B> for Option<A>
+where
+    A: BitSubset<B>,
+    B: Bits,
+{
+    fn is_subset_of(&self, rhs: &B) -> bool {
         match self {
             None => true,
             Some(lhs) => lhs.is_subset_of(rhs),
@@ -170,11 +183,12 @@ where
     }
 }
 
-impl<T, U> BitDisjoint<U> for Option<T>
+impl<A, B> BitDisjoint<B> for Option<A>
 where
-    T: BitDisjoint<U>,
+    A: BitDisjoint<B>,
+    B: Bits,
 {
-    fn is_disjoint(&self, rhs: &U) -> bool {
+    fn is_disjoint(&self, rhs: &B) -> bool {
         match self {
             None => true,
             Some(lhs) => lhs.is_disjoint(rhs),

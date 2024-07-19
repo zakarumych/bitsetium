@@ -1,377 +1,419 @@
 use crate::{
-    complement::Complement, difference::Difference, intersection::Intersection, ops::*,
-    union::Union,
+    comp::Comp, diff::Diff, intersect::Intersect, ops::*, sym_diff::SymDiff, union::Union,
 };
 
-#[cfg(feature = "alloc")]
-use alloc::boxed::Box;
-
-impl<T> BitTest for &'_ T
+impl<A> Bits for &'_ A
 where
-    T: BitTest,
+    A: Bits,
 {
+    const MAX_SET_INDEX: usize = A::MAX_SET_INDEX;
+    const MAX_UNSET_INDEX: usize = A::MAX_UNSET_INDEX;
+
     fn test(&self, idx: usize) -> bool {
-        T::test(*self, idx)
+        A::test(*self, idx)
     }
 }
 
-impl<T> BitTestNone for &'_ T
+impl<A> BitTestNone for &'_ A
 where
-    T: BitTestNone,
+    A: BitTestNone,
 {
     fn test_none(&self) -> bool {
-        T::test_none(*self)
+        A::test_none(*self)
     }
 }
 
-impl<T> BitTestAll for &'_ T
+impl<A> BitTestAll for &'_ A
 where
-    T: BitTestAll,
+    A: BitTestAll,
 {
     fn test_all(&self) -> bool {
-        T::test_all(*self)
+        A::test_all(*self)
     }
 }
 
-impl<T> BitSetLimit for &'_ T
+impl<A> BitFind for &'_ A
 where
-    T: BitSetLimit,
-{
-    const MAX_SET_INDEX: usize = T::MAX_SET_INDEX;
-}
-
-impl<T> BitUnsetLimit for &'_ T
-where
-    T: BitUnsetLimit,
-{
-    const MAX_UNSET_INDEX: usize = T::MAX_UNSET_INDEX;
-}
-
-impl<T> BitSearch for &'_ T
-where
-    T: BitSearch,
+    A: BitFind,
 {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
-        T::find_first_set(*self, lower_bound)
+        A::find_first_set(*self, lower_bound)
     }
 }
 
-impl<T> BitComplement for &'_ T {
-    type Output = Complement<Self>;
+impl<A> BitComp for &'_ A
+where
+    A: Bits,
+{
+    type Output = Comp<Self>;
 
-    fn complement(self) -> Complement<Self> {
-        Complement(self)
+    fn comp(self) -> Comp<Self> {
+        Comp(self)
     }
 }
 
-impl<T, U> BitUnion<U> for &'_ T {
-    type Output = Union<Self, U>;
+impl<A, B> BitUnion<B> for &'_ A
+where
+    A: Bits,
+    B: Bits,
+{
+    type Output = Union<Self, B>;
 
-    fn union(self, rhs: U) -> Union<Self, U> {
+    fn union(self, rhs: B) -> Union<Self, B> {
         Union(self, rhs)
     }
 }
 
-impl<T, U> BitIntersection<U> for &'_ T {
-    type Output = Intersection<Self, U>;
-
-    fn intersection(self, rhs: U) -> Intersection<Self, U> {
-        Intersection(self, rhs)
-    }
-}
-
-impl<T, U> BitDifference<U> for &'_ T {
-    type Output = Difference<Self, U>;
-
-    fn difference(self, rhs: U) -> Difference<Self, U> {
-        Difference(self, rhs)
-    }
-}
-
-impl<T, U> BitSubset<U> for &'_ T
+impl<A, B> BitIntersect<B> for &'_ A
 where
-    T: BitSubset<U>,
+    A: Bits,
+    B: Bits,
 {
-    fn is_subset_of(&self, rhs: &U) -> bool {
-        T::is_subset_of(*self, rhs)
+    type Output = Intersect<Self, B>;
+
+    fn intersect(self, rhs: B) -> Intersect<Self, B> {
+        Intersect(self, rhs)
     }
 }
 
-impl<T, U> BitDisjoint<U> for &'_ T
+impl<A, B> BitDiff<B> for &'_ A
 where
-    T: BitDisjoint<U>,
+    A: Bits,
+    B: Bits,
 {
-    fn is_disjoint(&self, rhs: &U) -> bool {
-        T::is_disjoint(*self, rhs)
+    type Output = Diff<Self, B>;
+
+    fn diff(self, rhs: B) -> Diff<Self, B> {
+        Diff(self, rhs)
     }
 }
 
-impl<T> BitTest for &'_ mut T
+impl<A, B> BitSymDiff<B> for &'_ A
 where
-    T: BitTest,
+    A: Bits,
+    B: Bits,
 {
+    type Output = SymDiff<Self, B>;
+
+    fn sym_diff(self, rhs: B) -> SymDiff<Self, B> {
+        SymDiff(self, rhs)
+    }
+}
+
+impl<A, B> BitSubset<B> for &'_ A
+where
+    A: BitSubset<B>,
+    B: Bits,
+{
+    fn is_subset_of(&self, rhs: &B) -> bool {
+        A::is_subset_of(*self, rhs)
+    }
+}
+
+impl<A, B> BitDisjoint<B> for &'_ A
+where
+    A: BitDisjoint<B>,
+    B: Bits,
+{
+    fn is_disjoint(&self, rhs: &B) -> bool {
+        A::is_disjoint(*self, rhs)
+    }
+}
+
+impl<A> Bits for &'_ mut A
+where
+    A: Bits,
+{
+    const MAX_SET_INDEX: usize = A::MAX_SET_INDEX;
+    const MAX_UNSET_INDEX: usize = A::MAX_UNSET_INDEX;
+
     fn test(&self, idx: usize) -> bool {
-        T::test(*self, idx)
+        A::test(*self, idx)
     }
 }
 
-impl<T> BitTestNone for &'_ mut T
+impl<A> BitTestNone for &'_ mut A
 where
-    T: BitTestNone,
+    A: BitTestNone,
 {
     fn test_none(&self) -> bool {
-        T::test_none(*self)
+        A::test_none(*self)
     }
 }
 
-impl<T> BitTestAll for &'_ mut T
+impl<A> BitTestAll for &'_ mut A
 where
-    T: BitTestAll,
+    A: BitTestAll,
 {
     fn test_all(&self) -> bool {
-        T::test_all(*self)
+        A::test_all(*self)
     }
 }
 
-impl<T> BitSetLimit for &'_ mut T
+impl<A> BitSet for &'_ mut A
 where
-    T: BitSetLimit,
-{
-    const MAX_SET_INDEX: usize = T::MAX_SET_INDEX;
-}
-
-impl<T> BitSet for &'_ mut T
-where
-    T: BitSet,
+    A: BitSet,
 {
     unsafe fn set_unchecked(&mut self, idx: usize) {
-        T::set_unchecked(*self, idx)
+        A::set_unchecked(*self, idx)
     }
 }
 
-impl<T> BitUnsetLimit for &'_ mut T
+impl<A> BitUnset for &'_ mut A
 where
-    T: BitUnsetLimit,
-{
-    const MAX_UNSET_INDEX: usize = T::MAX_UNSET_INDEX;
-}
-
-impl<T> BitUnset for &'_ mut T
-where
-    T: BitUnset,
+    A: BitUnset,
 {
     unsafe fn unset_unchecked(&mut self, idx: usize) {
-        T::unset_unchecked(*self, idx)
+        A::unset_unchecked(*self, idx)
     }
 }
 
-impl<T> BitSearch for &'_ mut T
+impl<A> BitFind for &'_ mut A
 where
-    T: BitSearch,
+    A: BitFind,
 {
     fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
-        T::find_first_set(*self, lower_bound)
+        A::find_first_set(*self, lower_bound)
     }
 }
 
-impl<T> BitComplement for &'_ mut T {
-    type Output = Complement<Self>;
+impl<A> BitComp for &'_ mut A
+where
+    A: Bits,
+{
+    type Output = Comp<Self>;
 
-    fn complement(self) -> Complement<Self> {
-        Complement(self)
+    fn comp(self) -> Comp<Self> {
+        Comp(self)
     }
 }
 
-impl<T, U> BitUnion<U> for &'_ mut T {
-    type Output = Union<Self, U>;
+impl<A, B> BitUnion<B> for &'_ mut A
+where
+    A: Bits,
+    B: Bits,
+{
+    type Output = Union<Self, B>;
 
-    fn union(self, rhs: U) -> Union<Self, U> {
+    fn union(self, rhs: B) -> Union<Self, B> {
         Union(self, rhs)
     }
 }
 
-impl<T, U> BitIntersection<U> for &'_ mut T {
-    type Output = Intersection<Self, U>;
-
-    fn intersection(self, rhs: U) -> Intersection<Self, U> {
-        Intersection(self, rhs)
-    }
-}
-
-impl<T, U> BitDifference<U> for &'_ mut T {
-    type Output = Difference<Self, U>;
-
-    fn difference(self, rhs: U) -> Difference<Self, U> {
-        Difference(self, rhs)
-    }
-}
-
-impl<T, U> BitSubset<U> for &'_ mut T
+impl<A, B> BitIntersect<B> for &'_ mut A
 where
-    T: BitSubset<U>,
+    A: Bits,
+    B: Bits,
 {
-    fn is_subset_of(&self, rhs: &U) -> bool {
-        T::is_subset_of(*self, rhs)
+    type Output = Intersect<Self, B>;
+
+    fn intersect(self, rhs: B) -> Intersect<Self, B> {
+        Intersect(self, rhs)
     }
 }
 
-impl<T, U> BitDisjoint<U> for &'_ mut T
+impl<A, B> BitDiff<B> for &'_ mut A
 where
-    T: BitDisjoint<U>,
+    A: Bits,
+    B: Bits,
 {
-    fn is_disjoint(&self, rhs: &U) -> bool {
-        T::is_disjoint(*self, rhs)
+    type Output = Diff<Self, B>;
+
+    fn diff(self, rhs: B) -> Diff<Self, B> {
+        Diff(self, rhs)
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T> BitEmpty for Box<T>
+impl<A, B> BitSymDiff<B> for &'_ mut A
 where
-    T: BitEmpty,
+    A: Bits,
+    B: Bits,
 {
-    fn empty() -> Self {
-        Box::new(T::empty())
+    type Output = SymDiff<Self, B>;
+
+    fn sym_diff(self, rhs: B) -> SymDiff<Self, B> {
+        SymDiff(self, rhs)
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T> BitFull for Box<T>
+impl<A, B> BitSubset<B> for &'_ mut A
 where
-    T: BitFull,
+    A: BitSubset<B>,
+    B: Bits,
 {
-    fn full() -> Self {
-        Box::new(T::full())
+    fn is_subset_of(&self, rhs: &B) -> bool {
+        A::is_subset_of(*self, rhs)
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T> BitTest for Box<T>
+impl<A, B> BitDisjoint<B> for &'_ mut A
 where
-    T: BitTest,
+    A: BitDisjoint<B>,
+    B: Bits,
 {
-    fn test(&self, idx: usize) -> bool {
-        T::test(&**self, idx)
+    fn is_disjoint(&self, rhs: &B) -> bool {
+        A::is_disjoint(*self, rhs)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<T> BitTestNone for Box<T>
-where
-    T: BitTestNone,
-{
-    fn test_none(&self) -> bool {
-        T::test_none(&**self)
+mod boxed {
+
+    use alloc::boxed::Box;
+
+    use super::*;
+
+    impl<A> Bits for Box<A>
+    where
+        A: Bits,
+    {
+        const MAX_SET_INDEX: usize = A::MAX_SET_INDEX;
+        const MAX_UNSET_INDEX: usize = A::MAX_UNSET_INDEX;
+
+        fn test(&self, idx: usize) -> bool {
+            A::test(self, idx)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T> BitTestAll for Box<T>
-where
-    T: BitTestAll,
-{
-    fn test_all(&self) -> bool {
-        T::test_all(&**self)
+    impl<A> BitEmpty for Box<A>
+    where
+        A: BitEmpty,
+    {
+        fn empty() -> Self {
+            Box::new(A::empty())
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T> BitSetLimit for Box<T>
-where
-    T: BitSetLimit,
-{
-    const MAX_SET_INDEX: usize = T::MAX_SET_INDEX;
-}
-
-#[cfg(feature = "alloc")]
-impl<T> BitSet for Box<T>
-where
-    T: BitSet,
-{
-    unsafe fn set_unchecked(&mut self, idx: usize) {
-        T::set_unchecked(&mut **self, idx)
+    impl<A> BitFull for Box<A>
+    where
+        A: BitFull,
+    {
+        fn full() -> Self {
+            Box::new(A::full())
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T> BitUnsetLimit for Box<T>
-where
-    T: BitUnsetLimit,
-{
-    const MAX_UNSET_INDEX: usize = T::MAX_UNSET_INDEX;
-}
-
-#[cfg(feature = "alloc")]
-impl<T> BitUnset for Box<T>
-where
-    T: BitUnset,
-{
-    unsafe fn unset_unchecked(&mut self, idx: usize) {
-        T::unset_unchecked(&mut **self, idx)
+    impl<A> BitTestNone for Box<A>
+    where
+        A: BitTestNone,
+    {
+        fn test_none(&self) -> bool {
+            A::test_none(&**self)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T> BitSearch for Box<T>
-where
-    T: BitSearch,
-{
-    fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
-        T::find_first_set(&**self, lower_bound)
+    impl<A> BitTestAll for Box<A>
+    where
+        A: BitTestAll,
+    {
+        fn test_all(&self) -> bool {
+            A::test_all(&**self)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T> BitComplement for Box<T> {
-    type Output = Complement<Self>;
-
-    fn complement(self) -> Complement<Self> {
-        Complement(self)
+    impl<A> BitSet for Box<A>
+    where
+        A: BitSet,
+    {
+        unsafe fn set_unchecked(&mut self, idx: usize) {
+            A::set_unchecked(&mut **self, idx)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T, U> BitUnion<U> for Box<T> {
-    type Output = Union<Self, U>;
-
-    fn union(self, rhs: U) -> Union<Self, U> {
-        Union(self, rhs)
+    impl<A> BitUnset for Box<A>
+    where
+        A: BitUnset,
+    {
+        unsafe fn unset_unchecked(&mut self, idx: usize) {
+            A::unset_unchecked(&mut **self, idx)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T, U> BitIntersection<U> for Box<T> {
-    type Output = Intersection<Self, U>;
-
-    fn intersection(self, rhs: U) -> Intersection<Self, U> {
-        Intersection(self, rhs)
+    impl<A> BitFind for Box<A>
+    where
+        A: BitFind,
+    {
+        fn find_first_set(&self, lower_bound: usize) -> Option<usize> {
+            A::find_first_set(&**self, lower_bound)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T, U> BitDifference<U> for Box<T> {
-    type Output = Difference<Self, U>;
+    impl<A> BitComp for Box<A>
+    where
+        A: Bits,
+    {
+        type Output = Comp<Self>;
 
-    fn difference(self, rhs: U) -> Difference<Self, U> {
-        Difference(self, rhs)
+        fn comp(self) -> Comp<Self> {
+            Comp(self)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T, U> BitSubset<U> for Box<T>
-where
-    T: BitSubset<U>,
-{
-    fn is_subset_of(&self, rhs: &U) -> bool {
-        T::is_subset_of(&**self, rhs)
+    impl<A, B> BitUnion<B> for Box<A>
+    where
+        A: Bits,
+        B: Bits,
+    {
+        type Output = Union<Self, B>;
+
+        fn union(self, rhs: B) -> Union<Self, B> {
+            Union(self, rhs)
+        }
     }
-}
 
-#[cfg(feature = "alloc")]
-impl<T, U> BitDisjoint<U> for Box<T>
-where
-    T: BitDisjoint<U>,
-{
-    fn is_disjoint(&self, rhs: &U) -> bool {
-        T::is_disjoint(&**self, rhs)
+    impl<A, B> BitIntersect<B> for Box<A>
+    where
+        A: Bits,
+        B: Bits,
+    {
+        type Output = Intersect<Self, B>;
+
+        fn intersect(self, rhs: B) -> Intersect<Self, B> {
+            Intersect(self, rhs)
+        }
+    }
+
+    impl<A, B> BitDiff<B> for Box<A>
+    where
+        A: Bits,
+        B: Bits,
+    {
+        type Output = Diff<Self, B>;
+
+        fn diff(self, rhs: B) -> Diff<Self, B> {
+            Diff(self, rhs)
+        }
+    }
+
+    impl<A, B> BitSymDiff<B> for Box<A>
+    where
+        A: Bits,
+        B: Bits,
+    {
+        type Output = SymDiff<Self, B>;
+
+        fn sym_diff(self, rhs: B) -> SymDiff<Self, B> {
+            SymDiff(self, rhs)
+        }
+    }
+
+    impl<A, B> BitSubset<B> for Box<A>
+    where
+        A: BitSubset<B>,
+        B: Bits,
+    {
+        fn is_subset_of(&self, rhs: &B) -> bool {
+            A::is_subset_of(&**self, rhs)
+        }
+    }
+
+    impl<A, B> BitDisjoint<B> for Box<A>
+    where
+        A: BitDisjoint<B>,
+        B: Bits,
+    {
+        fn is_disjoint(&self, rhs: &B) -> bool {
+            A::is_disjoint(&**self, rhs)
+        }
     }
 }
